@@ -6,6 +6,9 @@ window.onload = function() {
   let ctx;
   let blockSize = 30;
   let delay = 100;
+  let pinkLadie;
+  let widthInBlocks = canvasWidth / blockSize;
+  let heightInBlocks = canvasHeight / blockSize;
 
   init();
 
@@ -24,22 +27,29 @@ window.onload = function() {
       ],
       "down"
     ); // création du serpent (= objet) - serpents de trois blocks dont les valeurs sont les positions x et y des blocks et la direction
+    pinkLadie = new apple([10, 10]);
     ctx = canvas.getContext("2d");
 
     refreshCanvas();
   }
 
   function refreshCanvas() {
-    ctx.clearRect(0, 0, canvasWidth, canvasHeight); //delet du contenu du canvas en partant des coord 0, 0 sur hauteur / largeur du canvas.
-    snakee.draw(); //appel de la methode draw définit dans l'objet snakee (dont le prototype est snake)
-    snakee.advance(); //on appel la fonction qui fait avancer l' objet snakee
-    setTimeout(refreshCanvas, delay); //applique la function refreshCanvas toutes les 100 millisecondes.
+    snakee.advance();
+    if (snakee.checkCollision()) {
+      //condition : si il y a collision game over sinon tu executes les actions de refreshCanvas
+      //GAME OVER
+    } else {
+      ctx.clearRect(0, 0, canvasWidth, canvasHeight); //delet du contenu du canvas en partant des coord 0, 0 sur hauteur / largeur du canvas.
+      snakee.draw(); //appel de la methode draw définit dans l'objet snakee (dont le prototype est snake)
+      pinkLadie.draw();
+      setTimeout(refreshCanvas, delay); //applique la function refreshCanvas toutes les 100 millisecondes.
+    }
   }
 
   function drawBlock(ctx, position) {
     let x = position[0] * blockSize; //prend premiere coord dans la première valeur de position (ici body[i]) et la mult par "30"
     let y = position[1] * blockSize; // idem pour coord y
-    ctx.fillRect(x, y, blockSize, blockSize); // ajout du dessin dans le canvas. Ici un block avec coord x / y sur 30x30.
+    ctx.fillRect(x, y, blockSize, blockSize); // ajout du dessin dans le canvas. Ici un block avec coord x / y sur 30x30 grace à .fillRect
   }
 
   function snake(body, direction) {
@@ -60,6 +70,7 @@ window.onload = function() {
     this.advance = function() {
       //nouvelle méthode : déplacer snake d'un block en changeant ses coordonnées
       let nextPosition = this.body[0].slice(); //copie avec .slice la position de la tête du serpent (premier block)
+
       switch (this.direction) {
         case "right":
           nextPosition[0] += 1;
@@ -83,6 +94,7 @@ window.onload = function() {
     this.setDirection = function(newDirection) {
       //nouvelle méthode : modifications des coordonnées selon la touche utilisée
       let allowedDirections;
+
       switch (this.direction) {
         case "right": // si direction = right ou left alors on crée un tableau avec string up et down
         case "left":
@@ -99,6 +111,50 @@ window.onload = function() {
         //si la valeur de newDirection est trouvée dans allowedDirections alors il
         this.direction = newDirection; //renverra son index. Si celui-ci est supérieur à moins -1 (càd qu'il existe) alors..
       }
+    };
+
+    this.checkCollision = function() {
+      let wallCollision = false;
+      let snakeCollision = false;
+      let headOfSnake = this.body[0]; //recupère la tête du serpent (premier block du array)
+      let restOfSnake = this.body.slice(1); //recupère le reste des valeurs du array sauf la première grace à .slice(1) et en fait un autre array [[xblock2, yblock2],[xblock3, yblock3]]
+      let headX = headOfSnake[0]; //recupère la coord x du premier block (=tête)
+      let headY = headOfSnake[1]; // idem pour coord y
+      let minX = 0;
+      let minY = 0;
+      let maxX = widthInBlocks - 1;
+      let maxY = heightInBlocks - 1;
+      let horizontalCollision = headX < minX || headX > maxX;
+      let verticalCollision = headY < minY || headY > maxY;
+
+      if (horizontalCollision || verticalCollision) {
+        //test la collision avec les murs
+        wallCollision = true;
+      }
+      for (let i = 0; i < restOfSnake.length; i++) {
+        //test la collision avec le corps du serpent
+        if (headX === restOfSnake[i][0] && headY === restOfSnake[i][1]) {
+          snakeCollision = true;
+        }
+      }
+
+      return wallCollision || snakeCollision; //renvoi un booleen en resultat des tests de collisions
+    };
+  }
+
+  function apple(position) {
+    // création du protype de la pomme avec un paramètre
+    this.position = position;
+
+    this.draw = function() {
+      ctx.save(); //permet d'enregistrer le canvas existant notamment avec le serpent dessiné en rouge.
+      ctx.fillStyle = "#33cc33";
+      let radius = blockSize / 2; //permet de récupérer le rayon du cercle
+      let x = position[0] * blockSize + radius; // recupère le point x et y du centre du cercle afin de le dessiner
+      let y = position[1] * blockSize + radius;
+      ctx.arc(x, y, radius, 0, Math.PI * 2, true); //dessine le cercle grace à .arc(). 0 ou Math.PI * 0 = angle de départ - Math.PI * 2 = angle de fin (Math.PI * 0.5 vaut 1/4 de cercle)
+      ctx.fill(); //donne la couleur de remplissage définie dans .fillstyle
+      ctx.restore();
     };
   }
 
